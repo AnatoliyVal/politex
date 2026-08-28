@@ -13,7 +13,7 @@ WELCOME_TEXT = """
 Це бот для організації командної гри в гуртожитку.
 
 <b>Як це працює:</b>
-1️⃣ Створи свою команду або приєднайся до існуючої
+1️⃣ Приєднайся до команди
 2️⃣ Зібери команду з 5 людей
 3️⃣ Чекай на старт гри від адміністратора
 4️⃣ Коли гра почнеться — прийди до палатки за 4 хвилини!
@@ -49,14 +49,13 @@ async def cmd_start(message: Message, bot: Bot):
     # Видаляємо команду /start
     await delete_user_message(bot, message.chat.id, message.message_id)
     # Надсилаємо єдине активне повідомлення
-    await send_or_edit(bot, message.chat.id, WELCOME_TEXT, reply_markup=main_menu_kb(is_admin))
+    await send_or_edit(bot, message.chat.id, WELCOME_TEXT, reply_markup=main_menu_kb())
 
 
 @router.callback_query(F.data == "back_menu")
 async def back_to_menu(callback: CallbackQuery, bot: Bot):
     """Повернутися в головне меню."""
-    is_admin = storage.is_admin(callback.from_user.id)
-    await edit_current(bot, callback.message.chat.id, WELCOME_TEXT, reply_markup=main_menu_kb(is_admin))
+    await edit_current(bot, callback.message.chat.id, WELCOME_TEXT, reply_markup=main_menu_kb())
     await callback.answer()
 
 

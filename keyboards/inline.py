@@ -2,20 +2,9 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import MAX_TEAM_SIZE
 
 
-def main_menu_kb(is_admin: bool = False) -> InlineKeyboardMarkup:
-    """Головне меню. Кнопка 'Створити команду' тільки для адмінів."""
-    buttons = []
-
-    if is_admin:
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text="🏗️ Створити команду", callback_data="create_team"
-                )
-            ]
-        )
-
-    buttons += [
+def main_menu_kb() -> InlineKeyboardMarkup:
+    """Головне меню."""
+    buttons = [
         [
             InlineKeyboardButton(
                 text="👥 Приєднатися до команди", callback_data="join_team"

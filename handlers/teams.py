@@ -80,7 +80,7 @@ async def create_team_finish(message: Message, state: FSMContext, bot: Bot):
         f"👥 Учасники: 1/{MAX_TEAM_SIZE}\n\n"
         f"🔑 Код команди: <code>{team_id}</code>\n"
         f"Надішли цей код друзям щоб вони могли приєднатися!",
-        reply_markup=main_menu_kb(is_admin=True),
+        reply_markup=main_menu_kb(),
     )
     await state.clear()
 
@@ -126,8 +126,7 @@ async def join_team(callback: CallbackQuery, bot: Bot):
             f"{msg}\n\n"
             f"👥 Учасників: {members_count}/{MAX_TEAM_SIZE}"
         )
-        is_admin = storage.is_admin(callback.from_user.id)
-        await edit_current(bot, callback.message.chat.id, text, reply_markup=main_menu_kb(is_admin))
+        await edit_current(bot, callback.message.chat.id, text, reply_markup=main_menu_kb())
     else:
         await callback.answer(msg, show_alert=True)
 
@@ -190,8 +189,7 @@ async def show_my_team(callback: CallbackQuery, bot: Bot):
 async def leave_team(callback: CallbackQuery, bot: Bot):
     """Вийти з команди."""
     success, msg = storage.leave_team(callback.from_user.id)
-    is_admin = storage.is_admin(callback.from_user.id)
-    await edit_current(bot, callback.message.chat.id, msg, reply_markup=main_menu_kb(is_admin))
+    await edit_current(bot, callback.message.chat.id, msg, reply_markup=main_menu_kb())
     await callback.answer()
 
 

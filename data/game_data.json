@@ -1,20 +1,10 @@
 {
-  "teams": {
-    "4d9355e1": {
-      "name": "Оав",
-      "captain_id": 1355465382,
-      "members": [
-        1355465382
-      ],
-      "score": 0,
-      "created_at": "2026-08-28T15:32:55.058705"
-    }
-  },
+  "teams": {},
   "players": {
     "1355465382": {
       "username": "AnatoliyV6",
-      "full_name": "Толя",
-      "team_id": "4d9355e1",
+      "full_name": "РўРѕР»СЏ",
+      "team_id": null,
       "registered_at": "2026-08-28T14:55:37.447403"
     }
   },
@@ -27,6 +17,6 @@
     "timer_end": null
   },
   "bot_messages": {
-    "1355465382": 84
+    "1355465382": 99
   }
 }
