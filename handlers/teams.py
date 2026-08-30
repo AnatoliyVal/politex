@@ -29,11 +29,6 @@ async def create_team_start(callback: CallbackQuery, state: FSMContext, bot: Bot
         await callback.answer("❌ Тільки адміністратор може створювати команди!", show_alert=True)
         return
 
-    player = storage.get_player(callback.from_user.id)
-    if player and player["team_id"]:
-        await callback.answer("❌ Ти вже в команді! Спочатку вийди з неї.", show_alert=True)
-        return
-
     if storage.get_game_status() != "registration":
         await callback.answer("❌ Зараз не можна створювати команди. Гра вже йде!", show_alert=True)
         return
@@ -76,10 +71,9 @@ async def create_team_finish(message: Message, state: FSMContext, bot: Bot):
         bot,
         message.chat.id,
         f"✅ <b>Команду «{name}» створено!</b>\n\n"
-        f"👑 Ти — капітан команди\n"
-        f"👥 Учасники: 1/{MAX_TEAM_SIZE}\n\n"
+        f"👥 Учасники: 0/{MAX_TEAM_SIZE}\n\n"
         f"🔑 Код команди: <code>{team_id}</code>\n"
-        f"Надішли цей код друзям щоб вони могли приєднатися!",
+        f"Надішли цей код гравцям, щоб вони могли приєднатися!",
         reply_markup=main_menu_kb(),
     )
     await state.clear()

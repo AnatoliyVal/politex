@@ -71,13 +71,12 @@ class Storage:
         team_id = uuid.uuid4().hex[:8]
         self.data["teams"][team_id] = {
             "name": name,
-            "captain_id": captain_id,
-            "members": [captain_id],
+            "captain_id": captain_id,  # хто створив (адмін)
+            "members": [],             # адмін не є учасником
             "score": 0,
             "created_at": datetime.now().isoformat(),
         }
-        # Прив'язати капітана до команди
-        self.data["players"][str(captain_id)]["team_id"] = team_id
+        # Адмін не прив'язується до команди — він лише організатор
         self.save()
         return team_id
 
