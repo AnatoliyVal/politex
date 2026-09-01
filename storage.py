@@ -213,10 +213,12 @@ class Storage:
         self.save()
 
     def reset_all(self):
-        """Скинути всі дані гри (зберігаючи список адмінів)."""
+        """Скинути всі дані гри (зберігаючи список адмінів та bot_messages)."""
         current_admins = self.data.get("admins", [])
+        current_bot_messages = self.data.get("bot_messages", {})
         self.data = self._default_data()
         self.data["admins"] = current_admins
+        self.data["bot_messages"] = current_bot_messages
         self.save()
 
     def get_stats(self) -> dict:

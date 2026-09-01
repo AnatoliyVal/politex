@@ -3,6 +3,7 @@ import logging
 import sys
 import io
 import socket
+from typing import Any, Awaitable, Callable
 import aiohttp
 
 from aiogram import Bot, Dispatcher
@@ -10,6 +11,8 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.types import Message, TelegramObject
+from aiogram.dispatcher.middlewares.base import BaseMiddleware
 
 from config import BOT_TOKEN
 from handlers import start_router, teams_router, admin_router, game_router
@@ -50,6 +53,25 @@ logging.basicConfig(level=logging.INFO, handlers=[handler])
 logger = logging.getLogger(__name__)
 
 
+class DismissOldMessageMiddleware(BaseMiddleware):
+    """
+    Мідлвеар: автоматично видаляє (або прибирає кнопки з) попереднє бот-повідомлення
+    при надходженні будь-якої команди (/start, /admin тощо).
+    Це унеможливлює появу двох меню одночасно.
+    """
+    async def __call__(
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: dict[str, Any],
+    ) -> Any:
+        if isinstance(event, Message) and event.text and event.text.startswith("/"):
+            bot: Bot = data["bot"]
+            from utils.message_manager import dismiss_old_message
+            await dismiss_old_message(bot, event.chat.id)
+        return await handler(event, data)
+
+
 async def main():
     """Точка входу бота."""
     if not BOT_TOKEN:
@@ -71,6 +93,9 @@ async def main():
 
     # Диспетчер з FSM сховищем в пам'яті
     dp = Dispatcher(storage=MemoryStorage())
+
+    # Мідлвеар: автоматично прибирає старе бот-повідомлення при будь-якій команді
+    dp.message.middleware(DismissOldMessageMiddleware())
 
     # Підключаємо роутери (порядок має значення!)
     dp.include_router(admin_router)   # Адмін-панель
