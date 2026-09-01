@@ -176,6 +176,22 @@ class Storage:
         team_id = player["team_id"]
         return team_id, self.data["teams"].get(team_id)
 
+    def delete_team(self, team_id: str) -> tuple[bool, str]:
+        """Видалити команду адміном. Повертає (success, message)."""
+        team = self.data["teams"].get(team_id)
+        if not team:
+            return False, "❌ Команду не знайдено."
+
+        # Відв'язати всіх учасників від команди
+        for member_id in team["members"]:
+            player = self.data["players"].get(str(member_id))
+            if player:
+                player["team_id"] = None
+
+        del self.data["teams"][team_id]
+        self.save()
+        return True, f"✅ Команду «{team['name']}» видалено."
+
     # ── Адміни ──────────────────────────────────────────────
 
     def add_admin(self, user_id: int):

@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from storage import storage
 from config import ADMIN_PASSWORD, TIMER_MINUTES
-from keyboards.inline import admin_panel_kb, confirm_kb, back_to_admin_kb, score_teams_kb
+from keyboards.inline import admin_panel_kb, confirm_kb, back_to_admin_kb, score_teams_kb, admin_teams_kb
 from keyboards.inline import InlineKeyboardMarkup, InlineKeyboardButton
 from utils.notifications import notify_all_players, start_countdown
 from utils.message_manager import send_or_edit, edit_current, delete_user_message, set_last_message_id
@@ -155,7 +155,7 @@ async def admin_teams(callback: CallbackQuery, bot: Bot):
                 name = f"👑{name}"
             members_names.append(name)
 
-        members_str = ", ".join(members_names)
+        members_str = ", ".join(members_names) if members_names else "немає учасників"
         lines.append(
             f"\n🏷️ <b>{team['name']}</b> ({len(team['members'])}/5)\n"
             f"   {members_str}\n"
@@ -166,8 +166,69 @@ async def admin_teams(callback: CallbackQuery, bot: Bot):
         bot,
         callback.message.chat.id,
         "\n".join(lines),
-        reply_markup=back_to_admin_kb(),
+        reply_markup=admin_teams_kb(teams),
     )
+    await callback.answer()
+
+
+# ── Видалення команди (адмін) ──────────────────────────────
+
+@router.callback_query(F.data.startswith("admin_delete_team_"))
+async def admin_delete_team_confirm(callback: CallbackQuery, bot: Bot):
+    """Підтвердження видалення команди."""
+    if not storage.is_admin(callback.from_user.id):
+        await callback.answer("❌ Ти не адмін!", show_alert=True)
+        return
+
+    team_id = callback.data.replace("admin_delete_team_", "")
+    team = storage.get_team(team_id)
+    if not team:
+        await callback.answer("❌ Команду не знайдено!", show_alert=True)
+        return
+
+    members_count = len(team["members"])
+    await edit_current(
+        bot,
+        callback.message.chat.id,
+        f"🗑️ <b>Видалити команду «{team['name']}»?</b>\n\n"
+        f"👥 Учасників: {members_count}\n"
+        "⚠️ Всі учасники будуть відписані від команди!",
+        reply_markup=confirm_kb(f"deleteteam_{team_id}"),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("confirm_deleteteam_"))
+async def admin_delete_team(callback: CallbackQuery, bot: Bot):
+    """Видалення команди."""
+    if not storage.is_admin(callback.from_user.id):
+        await callback.answer("❌ Ти не адмін!", show_alert=True)
+        return
+
+    team_id = callback.data.replace("confirm_deleteteam_", "")
+    success, msg = storage.delete_team(team_id)
+
+    teams = storage.get_all_teams()
+    if teams:
+        await edit_current(
+            bot,
+            callback.message.chat.id,
+            f"{msg}\n\n👥 <b>Список команд</b> оновлено.",
+            reply_markup=admin_teams_kb(teams),
+        )
+    else:
+        await edit_current(
+            bot,
+            callback.message.chat.id,
+            f"{msg}\n\n😔 Команд більше немає.",
+            reply_markup=back_to_admin_kb(),
+        )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "noop")
+async def noop_handler(callback: CallbackQuery):
+    """Інформаційна кнопка (нічого не робить)."""
     await callback.answer()
 
 

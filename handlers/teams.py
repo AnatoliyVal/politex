@@ -84,13 +84,16 @@ async def create_team_finish(message: Message, state: FSMContext, bot: Bot):
 @router.callback_query(F.data == "join_team")
 async def show_teams_list(callback: CallbackQuery, bot: Bot):
     """Показати список доступних команд."""
+    if storage.get_game_status() != "registration":
+        await callback.answer(
+            "🔒 Гра вже розпочалась. Ти не можеш змінювати команди зараз.",
+            show_alert=True,
+        )
+        return
+
     player = storage.get_player(callback.from_user.id)
     if player and player["team_id"]:
         await callback.answer("❌ Ти вже в команді! Спочатку вийди з неї.", show_alert=True)
-        return
-
-    if storage.get_game_status() != "registration":
-        await callback.answer("❌ Зараз не можна приєднуватися. Гра вже йде!", show_alert=True)
         return
 
     teams = storage.get_available_teams()
@@ -109,6 +112,14 @@ async def join_team(callback: CallbackQuery, bot: Bot):
     team_id = callback.data.replace("join_", "")
 
     if team_id == "team":
+        return
+
+    # Додаткова перевірка: стан гри може змінитись до обробки callback
+    if storage.get_game_status() != "registration":
+        await callback.answer(
+            "🔒 Гра вже розпочалась. Ти не можеш змінювати команди зараз.",
+            show_alert=True,
+        )
         return
 
     success, msg = storage.join_team(team_id, callback.from_user.id)
@@ -145,6 +156,7 @@ async def show_my_team(callback: CallbackQuery, bot: Bot):
         await callback.answer("❌ Ти ще не в жодній команді.", show_alert=True)
         return
 
+    game_active = storage.get_game_status() != "registration"
     is_captain = team["captain_id"] == user_id
     members_info = []
     kick_members = []
@@ -156,7 +168,8 @@ async def show_my_team(callback: CallbackQuery, bot: Bot):
             members_info.append(f"  👑 {name} (капітан)")
         else:
             members_info.append(f"  👤 {name}")
-            kick_members.append((member_id, name))
+            if not game_active:
+                kick_members.append((member_id, name))
 
     members_text = "\n".join(members_info)
     members_count = len(team["members"])
@@ -167,21 +180,29 @@ async def show_my_team(callback: CallbackQuery, bot: Bot):
         f"{members_text}\n\n"
         f"🔑 Код команди: <code>{team_id}</code>"
     )
+    if game_active:
+        text += "\n\n🔒 <i>Гра активна — зміни заблоковано.</i>"
 
     await edit_current(
         bot,
         callback.message.chat.id,
         text,
-        reply_markup=team_info_kb(team_id, is_captain, kick_members),
+        reply_markup=team_info_kb(team_id, is_captain, kick_members, game_active=game_active),
     )
     await callback.answer()
 
 
-# ── Вийти з команди ─────────────────────────────────────────
+# ── Вийти з команди ─────────────────────────────────────
 
 @router.callback_query(F.data == "leave_team")
 async def leave_team(callback: CallbackQuery, bot: Bot):
     """Вийти з команди."""
+    if storage.get_game_status() != "registration":
+        await callback.answer(
+            "🔒 Гра вже розпочалась. Ти не можеш змінювати команди зараз.",
+            show_alert=True,
+        )
+        return
     success, msg = storage.leave_team(callback.from_user.id)
     await edit_current(bot, callback.message.chat.id, msg, reply_markup=main_menu_kb())
     await callback.answer()
@@ -192,6 +213,13 @@ async def leave_team(callback: CallbackQuery, bot: Bot):
 @router.callback_query(F.data.startswith("kick_"))
 async def kick_member(callback: CallbackQuery, bot: Bot):
     """Капітан кікає учасника."""
+    if storage.get_game_status() != "registration":
+        await callback.answer(
+            "🔒 Гра вже розпочалась. Ти не можеш вигнати учасників зараз.",
+            show_alert=True,
+        )
+        return
+
     parts = callback.data.split("_")
     # kick_teamid_memberid
     if len(parts) < 3:
@@ -207,3 +235,12 @@ async def kick_member(callback: CallbackQuery, bot: Bot):
         await show_my_team(callback, bot)
     else:
         await callback.answer(msg, show_alert=True)
+
+
+@router.callback_query(F.data == "game_active_lock")
+async def game_active_lock_handler(callback: CallbackQuery):
+    """Заблокована дія: гра вже розпочалась."""
+    await callback.answer(
+        "🔒 Гра вже розпочалась. Ти не можеш змінювати команди зараз.",
+        show_alert=True,
+    )

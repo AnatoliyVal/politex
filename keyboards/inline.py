@@ -54,31 +54,70 @@ def teams_list_kb(teams: dict) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def team_info_kb(team_id: str, is_captain: bool, members: list) -> InlineKeyboardMarkup:
+def team_info_kb(
+    team_id: str,
+    is_captain: bool,
+    members: list,
+    game_active: bool = False,
+) -> InlineKeyboardMarkup:
     """Інфо про команду з діями."""
     buttons = []
 
-    if is_captain:
-        # Кнопки для кікання кожного учасника (крім капітана)
-        for member_id, member_name in members:
-            buttons.append(
-                [
-                    InlineKeyboardButton(
-                        text=f"❌ Вигнати {member_name}",
-                        callback_data=f"kick_{team_id}_{member_id}",
-                    )
-                ]
-            )
+    if not game_active:
+        if is_captain:
+            # Кнопки для кікання кожного учасника (крім капітана)
+            for member_id, member_name in members:
+                buttons.append(
+                    [
+                        InlineKeyboardButton(
+                            text=f"❌ Вигнати {member_name}",
+                            callback_data=f"kick_{team_id}_{member_id}",
+                        )
+                    ]
+                )
+
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="🚶 Вийти з команди", callback_data="leave_team"
+                )
+            ]
+        )
+    else:
+        # Гра активна — заборонено змінювати команду
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="🔒 Гра вже розпочалась", callback_data="game_active_lock"
+                )
+            ]
+        )
 
     buttons.append(
-        [
-            InlineKeyboardButton(
-                text="🚪 Вийти з команди", callback_data="leave_team"
-            )
-        ]
-    )
-    buttons.append(
         [InlineKeyboardButton(text="🔙 Назад", callback_data="back_menu")]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def admin_teams_kb(teams: dict) -> InlineKeyboardMarkup:
+    """Список команд для адміна (з кнопкою Delete)."""
+    buttons = []
+    for team_id, team in teams.items():
+        members_count = len(team["members"])
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=f"🏷️ {team['name']} ({members_count}/{MAX_TEAM_SIZE})",
+                    callback_data="noop",
+                ),
+                InlineKeyboardButton(
+                    text="🗑️ Видалити",
+                    callback_data=f"admin_delete_team_{team_id}",
+                ),
+            ]
+        )
+    buttons.append(
+        [InlineKeyboardButton(text="🔙 Адмін-панель", callback_data="admin_panel")]
     )
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
